@@ -8,8 +8,8 @@ export interface Suggestion {
 }
 
 const SUGGESTIONS: Suggestion[] = [
+  { emoji: '🍳', label: 'สูตรอาหาร', prompt: 'อยากทำกระเพราไก่ ขอสูตรพร้อมวัตถุดิบหน่อย' },
   { emoji: '💄', label: 'ลิปสติก', prompt: 'แนะนำลิปสติกสีแดงหน่อย' },
-  { emoji: '🍜', label: 'ของกิน', prompt: 'อยากกินอะไรอร่อยๆ มีอะไรแนะนำมั้ย' },
   { emoji: '🧴', label: 'ของใช้ในบ้าน', prompt: 'มีน้ำยาซักผ้าอะไรขายบ้าง' },
   { emoji: '🐶', label: 'สัตว์เลี้ยง', prompt: 'แนะนำอาหารแมวให้หน่อย' },
 ];

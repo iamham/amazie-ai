@@ -6,16 +6,159 @@ interface Props {
   message: ChatMessage;
 }
 
-const renderWithBold = (text: string): React.ReactNode => {
+/**
+ * Lightweight inline-markdown renderer. Supports **bold** and *italic*.
+ * We deliberately do not pull in a full markdown library — the model only
+ * needs bold, italic, bullet `-`, and numbered `1.` lists, and we want zero
+ * dependencies for the chat bubble.
+ */
+const renderInline = (text: string): React.ReactNode => {
   if (!text) return null;
-  return text.split(/(\*\*[\s\S]*?\*\*)/g).map((chunk, i) =>
-    chunk.startsWith('**') && chunk.length >= 4 && chunk.endsWith('**') ? (
-      <strong key={i} className="font-bold">
-        {chunk.slice(2, -2)}
-      </strong>
-    ) : (
-      <React.Fragment key={i}>{chunk}</React.Fragment>
-    ),
+  const tokens = text.split(/(\*\*[\s\S]+?\*\*|(?<![*\w])\*[^*\n]+?\*)/g);
+  return tokens.map((chunk, i) => {
+    if (chunk.startsWith('**') && chunk.endsWith('**') && chunk.length >= 4) {
+      return (
+        <strong key={i} style={{ fontWeight: 700 }}>
+          {chunk.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (
+      chunk.startsWith('*') &&
+      chunk.endsWith('*') &&
+      chunk.length >= 3 &&
+      !chunk.startsWith('**')
+    ) {
+      return (
+        <em key={i} style={{ fontStyle: 'italic' }}>
+          {chunk.slice(1, -1)}
+        </em>
+      );
+    }
+    return <React.Fragment key={i}>{chunk}</React.Fragment>;
+  });
+};
+
+interface Block {
+  type: 'p' | 'ul' | 'ol';
+  items: string[];
+}
+
+const parseBlocks = (raw: string): Block[] => {
+  const lines = raw.split('\n');
+  const blocks: Block[] = [];
+  let buffer: string[] = [];
+
+  const flushParagraph = () => {
+    if (buffer.length) {
+      blocks.push({ type: 'p', items: [buffer.join('\n')] });
+      buffer = [];
+    }
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+    const ul = /^\s*[-•*]\s+(.*)$/.exec(line);
+    const ol = /^\s*\d+[.)]\s+(.*)$/.exec(line);
+
+    if (ul) {
+      flushParagraph();
+      const last = blocks[blocks.length - 1];
+      if (last && last.type === 'ul') last.items.push(ul[1]);
+      else blocks.push({ type: 'ul', items: [ul[1]] });
+    } else if (ol) {
+      flushParagraph();
+      const last = blocks[blocks.length - 1];
+      if (last && last.type === 'ol') last.items.push(ol[1]);
+      else blocks.push({ type: 'ol', items: [ol[1]] });
+    } else if (line.trim() === '') {
+      flushParagraph();
+    } else {
+      buffer.push(line);
+    }
+  }
+  flushParagraph();
+  return blocks;
+};
+
+const RichText: React.FC<{ text: string; inverted?: boolean }> = ({
+  text,
+  inverted,
+}) => {
+  const blocks = parseBlocks(text);
+  const markerColor = inverted
+    ? 'rgba(255,255,255,0.85)'
+    : 'var(--color-primary-500)';
+
+  return (
+    <div className="space-y-2">
+      {blocks.map((b, i) => {
+        if (b.type === 'p') {
+          return (
+            <p
+              key={i}
+              className="whitespace-pre-wrap break-words"
+              style={{ fontSize: 14, lineHeight: '22px' }}
+            >
+              {renderInline(b.items[0])}
+            </p>
+          );
+        }
+        if (b.type === 'ul') {
+          return (
+            <ul key={i} className="space-y-1 pl-1">
+              {b.items.map((item, j) => (
+                <li
+                  key={j}
+                  className="flex gap-2"
+                  style={{ fontSize: 14, lineHeight: '22px' }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      color: markerColor,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
+                  >
+                    •
+                  </span>
+                  <span className="flex-1 break-words">
+                    {renderInline(item)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        return (
+          <ol key={i} className="space-y-1.5 pl-1">
+            {b.items.map((item, j) => (
+              <li
+                key={j}
+                className="flex gap-2"
+                style={{ fontSize: 14, lineHeight: '22px' }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    color: markerColor,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    minWidth: 18,
+                  }}
+                >
+                  {j + 1}.
+                </span>
+                <span className="flex-1 break-words">
+                  {renderInline(item)}
+                </span>
+              </li>
+            ))}
+          </ol>
+        );
+      })}
+    </div>
   );
 };
 
@@ -62,7 +205,10 @@ const MessageBubble: React.FC<Props> = ({ message: m }) => {
     >
       {!isUser && <Avatar />}
 
-      <div className={`flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`} style={{ maxWidth: '85%' }}>
+      <div
+        className={`flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}
+        style={{ maxWidth: '85%' }}
+      >
         {(m.text || m.image) && (
           <div
             className="px-4 py-3"
@@ -87,18 +233,7 @@ const MessageBubble: React.FC<Props> = ({ message: m }) => {
                 }}
               />
             )}
-            {m.text && (
-              <p
-                className="whitespace-pre-wrap break-words"
-                style={{
-                  fontSize: 14,
-                  lineHeight: '22px',
-                  fontWeight: 400,
-                }}
-              >
-                {renderWithBold(m.text)}
-              </p>
-            )}
+            {m.text && <RichText text={m.text} inverted={isUser} />}
           </div>
         )}
 

@@ -1,9 +1,10 @@
 # Amazie AI
 
-Amazie is an agentic e-commerce chatbot for [Amaze](https://www.amaze.shop). It uses
-Google Gemini 2.5 Flash with a `searchProducts` tool that queries an embedded catalog
-of ~4,400 Amaze products. The assistant is guardrailed to answer only product- and
-shopping-related questions about Amaze.
+Amazie is an agentic e-commerce chatbot for Amaze. It uses Google Gemini 2.5 Flash
+with a `searchProducts` tool that queries an embedded catalog of ~4,400 Amaze
+products, and a recipe-aware system prompt that pairs cooking instructions with
+shoppable ingredients. The assistant is guardrailed to answer only product-, recipe-,
+and shopping-related questions about Amaze.
 
 This repository was reverse-engineered from a production bundle and re-architected
 to run on [Vercel](https://vercel.com).
