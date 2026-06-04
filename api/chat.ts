@@ -6,8 +6,8 @@ import {
   type Part,
   type Tool,
 } from '@google/genai';
-import { searchProducts } from '../src/data/productSearch';
-import type { Product } from '../src/types';
+import { searchProducts } from '../src/data/productSearch.js';
+import type { Product } from '../src/types.js';
 
 export const config = { runtime: 'nodejs' };
 

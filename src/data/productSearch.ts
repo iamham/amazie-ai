@@ -1,5 +1,5 @@
-import { PRODUCTS } from './products';
-import type { Product } from '../types';
+import { PRODUCTS } from './products.js';
+import type { Product } from '../types.js';
 
 /**
  * Local product search used as the `searchProducts` tool implementation.
