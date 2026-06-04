@@ -1,0 +1,11 @@
+node_modules
+dist
+.env
+.env.local
+.vercel
+.DS_Store
+*.log
+
+# Original production bundle the project was reverse-engineered from.
+# Kept out of git because it's 9.5 MB of generated code, not source.
+index-DgNNKOSL.js
